@@ -7,8 +7,8 @@ import (
 )
 
 type UpdateStore interface {
-	updateData(ctx context.Context, id int, updateData *restaurantmodel.RestaurantUpdate) error
 	GetDataWithCondition(ctx context.Context, cond map[string]interface{}) (*restaurantmodel.Restaurant, error)
+	UpdateData(ctx context.Context, id int, updateData *restaurantmodel.RestaurantUpdate) error
 }
 
 type updateRestaurantBiz struct {
@@ -29,7 +29,7 @@ func (biz *updateRestaurantBiz) UpdateRestaurant(ctx context.Context, id int, da
 		return errors.New("Restaurant has been deleted.")
 	}
 
-	if err := biz.store.updateData(ctx, id, data); err != nil {
+	if err := biz.store.UpdateData(ctx, id, data); err != nil {
 		return err
 	}
 	return nil
