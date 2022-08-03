@@ -7,8 +7,6 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
-	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -139,41 +137,9 @@ func main() {
 
 			restaurant.GET("/:id", ginrestaurant.GetRestaurant(db))
 
-			restaurant.PUT("/:id", func(c *gin.Context) {
-				var updateRestaurant RestaurantUpdate
-				if err := c.ShouldBind(&updateRestaurant); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
+			restaurant.PUT("/:id", ginrestaurant.UpdateRestaurant(db))
 
-				id, err := strconv.Atoi(c.Param("id"))
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				if err := db.Where("id =?", id).Updates(&updateRestaurant).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"data": updateRestaurant})
-
-			})
-
-			restaurant.DELETE("/:id", func(c *gin.Context) {
-				id, err := strconv.Atoi(c.Param("id"))
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				if err := db.Table(Restaurant{}.TableName()).Where("id = ?", id).Delete(nil).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-				return
-			})
+			restaurant.DELETE("/:id", ginrestaurant.DeleteRestaurant(db))
 		}
 	}
 
