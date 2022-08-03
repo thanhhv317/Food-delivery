@@ -5,7 +5,7 @@ import (
 	restaurantmodel "golang/module/restaurant/model"
 )
 
-func (s *sqlStore) updateData(ctx context.Context, id int, updateData *restaurantmodel.RestaurantUpdate) error {
+func (s *sqlStore) UpdateData(ctx context.Context, id int, updateData *restaurantmodel.RestaurantUpdate) error {
 	db := s.db
 
 	if err := db.Where("id = ?", id).Updates(updateData).Error; err != nil {

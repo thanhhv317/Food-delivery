@@ -23,8 +23,8 @@ func UpdateRestaurant(db *gorm.DB) func(ctx *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
 		store := restaurantstorage.NewSQLStore(db)
+
 		biz := bizrestaurant.NewUpdateRestaurantBiz(store)
 
 		if err := biz.UpdateRestaurant(c.Request.Context(), id, &updateRestaurant); err != nil {
