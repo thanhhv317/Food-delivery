@@ -70,15 +70,15 @@ func main() {
 	log.Println(db)
 
 	// Create
-	//n := &Note{
-	//	Name: "Note 4",
-	//}
-	//
-	//if err := db.Create(n).Error; err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//log.Println(n)
+	n := &Note{
+		Name: "Note 4",
+	}
+
+	if err := db.Create(n).Error; err != nil {
+		log.Fatal(err)
+	}
+
+	log.Println(n)
 
 	// Get first
 
@@ -121,9 +121,9 @@ func main() {
 
 	// Delete
 
-	//if err := db.Table(Note{}.TableName()).Where("id = ?", 1).Delete(nil).Error; err != nil {
-	//	log.Fatal(err)
-	//}
+	if err := db.Table(Note{}.TableName()).Where("id = ?", 1).Delete(nil).Error; err != nil {
+		log.Fatal(err)
+	}
 
 	r := gin.Default()
 	v1 := r.Group("/v1")
