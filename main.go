@@ -78,8 +78,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(n)
-
 	// Get first
 
 	var myNote Note
