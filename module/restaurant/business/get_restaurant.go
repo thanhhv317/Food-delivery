@@ -2,6 +2,7 @@ package bizrestaurant
 
 import (
 	"golang.org/x/net/context"
+	"golang/common"
 	restaurantmodel "golang/module/restaurant/model"
 )
 
@@ -24,7 +25,10 @@ func (biz *getRestaurantBiz) GetRestaurant(
 	data, err := biz.store.GetDataWithCondition(ctx, map[string]interface{}{"id": id})
 
 	if err != nil {
-		return nil, err
+		if err == common.RecordNotFound {
+			return nil, common.ErrEntityNotFound(restaurantmodel.EntityName, err)
+		}
+		return nil, common.ErrCannotGetEntity(restaurantmodel.EntityName, err)
 	}
 
 	return data, nil
