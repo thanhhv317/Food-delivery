@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	ginrestaurant "golang/module/restaurant/transport/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
-	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -71,15 +70,13 @@ func main() {
 	log.Println(db)
 
 	// Create
-	//n := &Note{
-	//	Name: "Note 4",
-	//}
-	//
-	//if err := db.Create(n).Error; err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//log.Println(n)
+	n := &Note{
+		Name: "Note 4",
+	}
+
+	if err := db.Create(n).Error; err != nil {
+		log.Fatal(err)
+	}
 
 	// Get first
 
@@ -122,9 +119,9 @@ func main() {
 
 	// Delete
 
-	//if err := db.Table(Note{}.TableName()).Where("id = ?", 1).Delete(nil).Error; err != nil {
-	//	log.Fatal(err)
-	//}
+	if err := db.Table(Note{}.TableName()).Where("id = ?", 1).Delete(nil).Error; err != nil {
+		log.Fatal(err)
+	}
 
 	r := gin.Default()
 	v1 := r.Group("/v1")
@@ -132,108 +129,15 @@ func main() {
 		restaurant := v1.Group("/restaurants")
 		{
 			// CRUD
-			restaurant.POST("", func(c *gin.Context) {
-				var newRestaurant RestaurantCreate
-				if err := c.ShouldBind(&newRestaurant); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
+			restaurant.POST("", ginrestaurant.CreateRestaurant(db))
 
-				if err := db.Create(&newRestaurant).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
+			restaurant.GET("", ginrestaurant.ListRestaurants(db))
 
-				c.JSON(http.StatusCreated, gin.H{"restaurant": newRestaurant})
-			})
+			restaurant.GET("/:id", ginrestaurant.GetRestaurant(db))
 
-			restaurant.GET("", func(c *gin.Context) {
-				var result []Restaurant
+			restaurant.PUT("/:id", ginrestaurant.UpdateRestaurant(db))
 
-				var paging struct {
-					Limit int   `json:"limit" form:"limit"`
-					Page  int   `json:"page" form:"page"`
-					Total int64 `json:"total" form:"total"`
-				}
-
-				if err := c.ShouldBind(&paging); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				if paging.Limit <= 0 {
-					paging.Limit = 10
-				}
-
-				if paging.Page <= 0 {
-					paging.Page = 1
-				}
-
-				if err := db.Table(Restaurant{}.TableName()).Count(&paging.Total).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				if err := db.Limit(paging.Limit).Offset((paging.Page - 1) * paging.Limit).Order("id desc").Find(&result).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"data": result, "paging": paging})
-
-			})
-
-			restaurant.GET("/:id", func(c *gin.Context) {
-				id, err := strconv.Atoi(c.Param("id"))
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-				var data Restaurant
-				if err := db.Where("id =?", id).First(&data).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"data": data})
-
-			})
-
-			restaurant.PUT("/:id", func(c *gin.Context) {
-				var updateRestaurant RestaurantUpdate
-				if err := c.ShouldBind(&updateRestaurant); err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				id, err := strconv.Atoi(c.Param("id"))
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				if err := db.Where("id =?", id).Updates(&updateRestaurant).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				c.JSON(http.StatusOK, gin.H{"data": updateRestaurant})
-
-			})
-
-			restaurant.DELETE("/:id", func(c *gin.Context) {
-				id, err := strconv.Atoi(c.Param("id"))
-				if err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-
-				if err := db.Table(Restaurant{}.TableName()).Where("id = ?", id).Delete(nil).Error; err != nil {
-					c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-					return
-				}
-				return
-			})
+			restaurant.DELETE("/:id", ginrestaurant.DeleteRestaurant(db))
 		}
 	}
 
