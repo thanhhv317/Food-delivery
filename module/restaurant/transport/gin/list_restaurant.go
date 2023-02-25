@@ -4,10 +4,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/context"
 	"golang/common"
+	"golang/component/appctx"
 	bizrestaurant "golang/module/restaurant/business"
 	restaurantmodel "golang/module/restaurant/model"
 	restaurantstorage "golang/module/restaurant/storage"
-	"gorm.io/gorm"
 	"net/http"
 )
 
@@ -22,33 +22,30 @@ func (fakeListStore) ListDataWithCondition(
 	return []restaurantmodel.Restaurant{}, nil
 }
 
-func ListRestaurants(db *gorm.DB) func(ctx *gin.Context) {
+func ListRestaurants(appContext appctx.AppContext) func(ctx *gin.Context) {
 	return func(c *gin.Context) {
 		var result []restaurantmodel.Restaurant
 
 		var paging common.Paging
 		if err := c.ShouldBind(&paging); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
 
 		paging.Process()
 
 		var filter restaurantmodel.Filter
 		if err := c.ShouldBind(&filter); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
 
-		store := restaurantstorage.NewSQLStore(db)
+		store := restaurantstorage.NewSQLStore(appContext.GetMaiDBConnection())
 		biz := bizrestaurant.NewListRestaurantBiz(store)
 		result, err := biz.ListDataWithCondition(c.Request.Context(), &filter, &paging)
 
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
 
-		c.JSON(http.StatusOK, gin.H{"data": result, "paging": paging, "filter": filter})
+		c.JSON(http.StatusOK, common.NewSuccessResponse(result, paging, filter))
 	}
 }

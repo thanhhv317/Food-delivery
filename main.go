@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"golang/component/appctx"
+	"golang/midleware"
 	ginrestaurant "golang/module/restaurant/transport/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -67,77 +69,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println(db)
-
-	// Create
-	n := &Note{
-		Name: "Note 4",
-	}
-
-	if err := db.Create(n).Error; err != nil {
-		log.Fatal(err)
-	}
-
-	// Get first
-
-	var myNote Note
-
-	if err := db.
-		Where("id = ?", 2).
-		First(&myNote).Error; err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(myNote)
-
-	// List
-	var listNote []Note
-
-	if err := db.Find(&listNote).Error; err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(listNote)
-
-	// update
-
-	myNote.Name = "note updated"
-
-	if err := db.Where("id = ?", 3).Updates(myNote).Error; err != nil {
-		log.Fatal(err)
-	}
-
-	log.Println(myNote)
-
-	// update name to ""
-
-	emptyString := ""
-
-	if err := db.Where("id = ?", 2).Updates(NoteUpdate{Name: &emptyString}).Error; err != nil {
-		log.Fatal(err)
-	}
-
-	// Delete
-
-	if err := db.Table(Note{}.TableName()).Where("id = ?", 1).Delete(nil).Error; err != nil {
-		log.Fatal(err)
-	}
+	appCtx := appctx.NewAppContext(db)
 
 	r := gin.Default()
+	r.Use(midleware.Recover(appCtx))
 	v1 := r.Group("/v1")
 	{
 		restaurant := v1.Group("/restaurants")
 		{
 			// CRUD
-			restaurant.POST("", ginrestaurant.CreateRestaurant(db))
+			restaurant.POST("", ginrestaurant.CreateRestaurant(appCtx))
 
-			restaurant.GET("", ginrestaurant.ListRestaurants(db))
+			restaurant.GET("", ginrestaurant.ListRestaurants(appCtx))
 
-			restaurant.GET("/:id", ginrestaurant.GetRestaurant(db))
+			restaurant.GET("/:id", ginrestaurant.GetRestaurant(appCtx))
 
-			restaurant.PUT("/:id", ginrestaurant.UpdateRestaurant(db))
+			restaurant.PUT("/:id", ginrestaurant.UpdateRestaurant(appCtx))
 
-			restaurant.DELETE("/:id", ginrestaurant.DeleteRestaurant(db))
+			restaurant.DELETE("/:id", ginrestaurant.DeleteRestaurant(appCtx))
 		}
 	}
 
