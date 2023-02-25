@@ -6,3 +6,10 @@ type RestaurantUpdate struct {
 }
 
 func (RestaurantUpdate) TableName() string { return Restaurant{}.TableName() }
+
+func (data *RestaurantUpdate) Validate() error {
+	if v := data.Name; v != nil && *v == "" {
+		return ErrRestaurantNameCannotBeBlank
+	}
+	return nil
+}
