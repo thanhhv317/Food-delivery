@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"golang/component/appctx"
+	"golang/component/uploadprovider"
 	"golang/midleware"
 	ginrestaurant "golang/module/restaurant/transport/gin"
+	ginupload "golang/module/upload/transport/gin"
+	userstorage "golang/module/user/storage"
+	"golang/module/user/transport/ginuser"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
+	"os"
 	"time"
 )
 
@@ -69,13 +74,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	appCtx := appctx.NewAppContext(db)
+	s3Provider := uploadprovider.NewS3Provider("", "", "", "", "")
+
+	secretKey := os.Getenv("SYSTEM_SECRET")
+	appCtx := appctx.NewAppContext(db, s3Provider, secretKey)
 
 	r := gin.Default()
 	r.Use(midleware.Recover(appCtx))
+
+	r.Static("/static", "./static")
+
+	userStorage := userstorage.NewSQLStore(db)
+	midAuthorize := midleware.RequiredAuth(appCtx, userStorage)
+
 	v1 := r.Group("/v1")
+
 	{
-		restaurant := v1.Group("/restaurants")
+		v1.POST("/upload", ginupload.Upload(appCtx))
+
+		v1.POST("/register", ginuser.Register(appCtx))
+		v1.POST("/authenticate", ginuser.Login(appCtx))
+
+		v1.GET("/profile", midAuthorize, ginuser.Profile(appCtx))
+
+		restaurant := v1.Group("/restaurants", midAuthorize)
 		{
 			// CRUD
 			restaurant.POST("", ginrestaurant.CreateRestaurant(appCtx))

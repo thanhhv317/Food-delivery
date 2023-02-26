@@ -17,6 +17,9 @@ func CreateRestaurant(appContext appctx.AppContext) func(ctx *gin.Context) {
 			panic(common.ErrInvalidRequest(err))
 		}
 
+		requester := c.MustGet(common.CurrentUser).(common.Requester)
+		newRestaurant.OwnerId = requester.GetUserId()
+
 		store := restaurantstorage.NewSQLStore(appContext.GetMaiDBConnection())
 		biz := bizrestaurant.NewCreateRestaurantBiz(store)
 
