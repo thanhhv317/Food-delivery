@@ -3,6 +3,7 @@ package bizrestaurant
 import (
 	"errors"
 	"golang.org/x/net/context"
+	"golang/common"
 	restaurantmodel "golang/module/restaurant/model"
 )
 
@@ -20,6 +21,10 @@ func NewUpdateRestaurantBiz(store UpdateStore) *updateRestaurantBiz {
 }
 
 func (biz *updateRestaurantBiz) UpdateRestaurant(ctx context.Context, id int, data *restaurantmodel.RestaurantUpdate) error {
+	if err := data.Validate(); err != nil {
+		return common.ErrCannotUpdateEntity(restaurantmodel.EntityName, err)
+	}
+
 	oldData, err := biz.store.GetDataWithCondition(ctx, map[string]interface{}{"id": id})
 	if err != nil {
 		return err

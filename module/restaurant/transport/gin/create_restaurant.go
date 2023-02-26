@@ -2,29 +2,31 @@ package ginrestaurant
 
 import (
 	"github.com/gin-gonic/gin"
+	"golang/common"
+	"golang/component/appctx"
 	bizrestaurant "golang/module/restaurant/business"
 	restaurantmodel "golang/module/restaurant/model"
 	restaurantstorage "golang/module/restaurant/storage"
-	"gorm.io/gorm"
 	"net/http"
 )
 
-func CreateRestaurant(db *gorm.DB) func(ctx *gin.Context) {
+func CreateRestaurant(appContext appctx.AppContext) func(ctx *gin.Context) {
 	return func(c *gin.Context) {
 		var newRestaurant restaurantmodel.RestaurantCreate
 		if err := c.ShouldBind(&newRestaurant); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
 
-		store := restaurantstorage.NewSQLStore(db)
+		requester := c.MustGet(common.CurrentUser).(common.Requester)
+		newRestaurant.OwnerId = requester.GetUserId()
+
+		store := restaurantstorage.NewSQLStore(appContext.GetMaiDBConnection())
 		biz := bizrestaurant.NewCreateRestaurantBiz(store)
 
 		if err := biz.CreateRestaurant(c.Request.Context(), &newRestaurant); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
+			panic(common.ErrInvalidRequest(err))
 		}
 
-		c.JSON(http.StatusCreated, gin.H{"restaurant": newRestaurant})
+		c.JSON(http.StatusCreated, common.SimpleSuccessResponse(newRestaurant.ID))
 	}
 }
