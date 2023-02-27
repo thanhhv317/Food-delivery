@@ -11,6 +11,7 @@ type ListRestaurantStore interface {
 		ctx context.Context,
 		filter *restaurantmodel.Filter,
 		paging *common.Paging,
+		moreKeys ...string,
 	) ([]restaurantmodel.Restaurant, error)
 }
 
@@ -27,7 +28,7 @@ func (biz *ListRestaurantBiz) ListDataWithCondition(
 	filter *restaurantmodel.Filter,
 	paging *common.Paging,
 ) ([]restaurantmodel.Restaurant, error) {
-	result, err := biz.store.ListDataWithCondition(ctx, filter, paging)
+	result, err := biz.store.ListDataWithCondition(ctx, filter, paging, "User")
 
 	if err != nil {
 		return nil, err
