@@ -109,7 +109,7 @@ func main() {
 
 			restaurant.GET("/:id/like-users", ginrestaurantlike.ListUsers(appCtx))
 			restaurant.POST("/:id/like", ginrestaurantlike.UserLikeRestaurant(appCtx))
-			restaurant.POST("/:id/dislike", ginrestaurantlike.UserDislikeRestaurant(appCtx))
+			restaurant.DELETE("/:id/dislike", ginrestaurantlike.UserDislikeRestaurant(appCtx))
 
 		}
 	}
