@@ -6,20 +6,21 @@ import (
 	restaurantmodel "golang/module/restaurant/model"
 )
 
-type ListRestaurantStore interface {
-	ListDataWithCondition(
+type ListRestaurantRepo interface {
+	ListRestaurant(
 		ctx context.Context,
 		filter *restaurantmodel.Filter,
 		paging *common.Paging,
+		moreKeys ...string,
 	) ([]restaurantmodel.Restaurant, error)
 }
 
 type ListRestaurantBiz struct {
-	store ListRestaurantStore
+	repo ListRestaurantRepo
 }
 
-func NewListRestaurantBiz(store ListRestaurantStore) *ListRestaurantBiz {
-	return &ListRestaurantBiz{store: store}
+func NewListRestaurantBiz(repo ListRestaurantRepo) *ListRestaurantBiz {
+	return &ListRestaurantBiz{repo: repo}
 }
 
 func (biz *ListRestaurantBiz) ListDataWithCondition(
@@ -27,7 +28,7 @@ func (biz *ListRestaurantBiz) ListDataWithCondition(
 	filter *restaurantmodel.Filter,
 	paging *common.Paging,
 ) ([]restaurantmodel.Restaurant, error) {
-	result, err := biz.store.ListDataWithCondition(ctx, filter, paging)
+	result, err := biz.repo.ListRestaurant(ctx, filter, paging, "User")
 
 	if err != nil {
 		return nil, err

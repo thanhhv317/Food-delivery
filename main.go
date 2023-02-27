@@ -7,6 +7,7 @@ import (
 	"golang/component/uploadprovider"
 	"golang/midleware"
 	ginrestaurant "golang/module/restaurant/transport/gin"
+	"golang/module/restaurantlike/transport/ginrestaurantlike"
 	ginupload "golang/module/upload/transport/gin"
 	userstorage "golang/module/user/storage"
 	"golang/module/user/transport/ginuser"
@@ -101,14 +102,15 @@ func main() {
 		{
 			// CRUD
 			restaurant.POST("", ginrestaurant.CreateRestaurant(appCtx))
-
 			restaurant.GET("", ginrestaurant.ListRestaurants(appCtx))
-
 			restaurant.GET("/:id", ginrestaurant.GetRestaurant(appCtx))
-
 			restaurant.PUT("/:id", ginrestaurant.UpdateRestaurant(appCtx))
-
 			restaurant.DELETE("/:id", ginrestaurant.DeleteRestaurant(appCtx))
+
+			restaurant.GET("/:id/like-users", ginrestaurantlike.ListUsers(appCtx))
+			restaurant.POST("/:id/like", ginrestaurantlike.UserLikeRestaurant(appCtx))
+			restaurant.DELETE("/:id/dislike", ginrestaurantlike.UserDislikeRestaurant(appCtx))
+
 		}
 	}
 
