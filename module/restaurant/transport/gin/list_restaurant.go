@@ -7,7 +7,9 @@ import (
 	"golang/component/appctx"
 	bizrestaurant "golang/module/restaurant/business"
 	restaurantmodel "golang/module/restaurant/model"
+	reporestaurant "golang/module/restaurant/repository"
 	restaurantstorage "golang/module/restaurant/storage"
+	restaurantlikestorage "golang/module/restaurantlike/storage"
 	"net/http"
 )
 
@@ -39,7 +41,9 @@ func ListRestaurants(appContext appctx.AppContext) func(ctx *gin.Context) {
 		}
 
 		store := restaurantstorage.NewSQLStore(appContext.GetMaiDBConnection())
-		biz := bizrestaurant.NewListRestaurantBiz(store)
+		likedStore := restaurantlikestorage.NewSQLStore(appContext.GetMaiDBConnection())
+		repo := reporestaurant.NewListRestaurantRepo(store, likedStore)
+		biz := bizrestaurant.NewListRestaurantBiz(repo)
 		result, err := biz.ListDataWithCondition(c.Request.Context(), &filter, &paging)
 
 		if err != nil {
