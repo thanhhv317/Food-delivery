@@ -1,7 +1,7 @@
 package main
 
 import (
-	"golang.org/x/net/context"
+	"context"
 	"golang/pubsub"
 	"golang/pubsub/localpb"
 	"log"
