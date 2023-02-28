@@ -2,7 +2,7 @@ package bizrestaurantlike
 
 import (
 	"context"
-	"golang/common"
+	"golang/component/asyncjob"
 	restaurantlikemodel "golang/module/restaurantlike/model"
 )
 
@@ -39,10 +39,20 @@ func (biz *userLikeRestaurantBiz) LikeRestaurant(
 		return restaurantlikemodel.ErrCannotLikeRestaurant(err)
 	}
 
-	go func() {
-		defer common.Recover()
-		_ = biz.countStore.IncreaseLikeCount(ctx, data.RestaurantId)
-	}()
+	// run with job;
+	job := asyncjob.NewJob(func(ctx context.Context) error {
+		return biz.countStore.IncreaseLikeCount(ctx, data.RestaurantId)
+	})
+
+	//job.SetRetryDurations([]time.Duration{time.Second * 3})
+
+	_ = asyncjob.NewGroup(true, job).Run(ctx)
+
+	// run with goroutines
+	//go func() {
+	//	defer common.Recover()
+	//	_ = biz.countStore.IncreaseLikeCount(ctx, data.RestaurantId)
+	//}()
 
 	return nil
 }

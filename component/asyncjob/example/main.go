@@ -9,6 +9,26 @@ import (
 
 func main() {
 
+	//job1 := asyncjob.NewJob(func(ctx context.Context) error {
+	//	time.Sleep(time.Second)
+	//	log.Println("I am job 1")
+	//
+	//	//return nil
+	//	return errors.New("something went wrong at job 1")
+	//})
+	//
+	//if err := job1.Execute(context.Background()); err != nil {
+	//	log.Println("error:", err)
+	//
+	//	for {
+	//		err := job1.Retry(context.Background())
+	//
+	//		if err == nil || job1.State() == asyncjob.StateRetryFailed {
+	//			break
+	//		}
+	//	}
+	//}
+
 	job1 := asyncjob.NewJob(
 		func(ctx context.Context) error {
 			time.Sleep(time.Second)
@@ -35,7 +55,7 @@ func main() {
 		return nil
 	})
 
-	group := asyncjob.NewGroup(false, job1, job2, job3)
+	group := asyncjob.NewGroup(true, job1, job2, job3)
 
 	if err := group.Run(context.Background()); err != nil {
 		log.Println(err)
