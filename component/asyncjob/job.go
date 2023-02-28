@@ -32,6 +32,7 @@ type JobHandler func(ctx context.Context) error
 
 type JobState int
 
+// enum
 const (
 	StateInit JobState = iota
 	StateRunning
