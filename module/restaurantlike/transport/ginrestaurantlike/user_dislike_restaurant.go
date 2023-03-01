@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang/common"
 	"golang/component/appctx"
-	restaurantstorage "golang/module/restaurant/storage"
 	bizrestaurantlike "golang/module/restaurantlike/biz"
 	restaurantlikemodel "golang/module/restaurantlike/model"
 	restaurantlikestorage "golang/module/restaurantlike/storage"
@@ -30,8 +29,8 @@ func UserDislikeRestaurant(appCtx appctx.AppContext) gin.HandlerFunc {
 		}
 
 		store := restaurantlikestorage.NewSQLStore(appCtx.GetMaiDBConnection())
-		countStore := restaurantstorage.NewSQLStore(appCtx.GetMaiDBConnection())
-		biz := bizrestaurantlike.NewUserDislikeRestaurantBiz(store, countStore)
+		//countStore := restaurantstorage.NewSQLStore(appCtx.GetMaiDBConnection())
+		biz := bizrestaurantlike.NewUserDislikeRestaurantBiz(store, appCtx.GetPubSub())
 
 		if err := biz.LikeRestaurant(c.Request.Context(), &data); err != nil {
 			panic(err)

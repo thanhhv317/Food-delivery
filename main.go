@@ -11,6 +11,8 @@ import (
 	ginupload "golang/module/upload/transport/gin"
 	userstorage "golang/module/user/storage"
 	"golang/module/user/transport/ginuser"
+	"golang/pubsub/localpb"
+	"golang/subscriber"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
@@ -76,9 +78,12 @@ func main() {
 	}
 
 	s3Provider := uploadprovider.NewS3Provider("", "", "", "", "")
+	pb := localpb.NewPubSub()
 
 	secretKey := os.Getenv("SYSTEM_SECRET")
-	appCtx := appctx.NewAppContext(db, s3Provider, secretKey)
+	appCtx := appctx.NewAppContext(db, s3Provider, secretKey, pb)
+
+	_ = subscriber.NewEngine(appCtx).Start()
 
 	r := gin.Default()
 	r.Use(midleware.Recover(appCtx))
