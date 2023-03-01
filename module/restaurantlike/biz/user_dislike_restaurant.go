@@ -3,30 +3,34 @@ package bizrestaurantlike
 import (
 	"context"
 	"golang/common"
-	"golang/component/asyncjob"
 	restaurantlikemodel "golang/module/restaurantlike/model"
+	"golang/pubsub"
 )
 
 type UserDislikeRestaurantStore interface {
 	Delete(ctx context.Context, userId, restaurantId int) error
 }
 
-type DecreaseCounterStore interface {
-	DecreaseLikeCount(ctx context.Context, id int) error
-}
+//
+//type DecreaseCounterStore interface {
+//	DecreaseLikeCount(ctx context.Context, id int) error
+//}
 
 type userDislikeRestaurantBiz struct {
-	store      UserDislikeRestaurantStore
-	countStore DecreaseCounterStore
+	store UserDislikeRestaurantStore
+	//countStore DecreaseCounterStore
+	pb pubsub.Pubsub
 }
 
 func NewUserDislikeRestaurantBiz(
 	store UserDislikeRestaurantStore,
-	countStore DecreaseCounterStore,
+//countStore DecreaseCounterStore,
+	pb pubsub.Pubsub,
 ) *userDislikeRestaurantBiz {
 	return &userDislikeRestaurantBiz{
-		store:      store,
-		countStore: countStore,
+		store: store,
+		//countStore: countStore,
+		pb: pb,
 	}
 }
 
@@ -47,17 +51,22 @@ func (biz *userDislikeRestaurantBiz) LikeRestaurant(
 
 	// Job & Job Manager
 
+	//go func() {
+	//	defer common.Recover()
+	//
+	//	job := asyncjob.NewJob(func(ctx context.Context) error {
+	//		return biz.countStore.DecreaseLikeCount(ctx, data.RestaurantId)
+	//	})
+	//
+	//	//job.SetRetryDurations([]time.Duration{time.Second * 3})
+	//
+	//	_ = asyncjob.NewGroup(true, job).Run(ctx)
+	//
+	//}()
+
 	go func() {
 		defer common.Recover()
-
-		job := asyncjob.NewJob(func(ctx context.Context) error {
-			return biz.countStore.DecreaseLikeCount(ctx, data.RestaurantId)
-		})
-
-		//job.SetRetryDurations([]time.Duration{time.Second * 3})
-
-		_ = asyncjob.NewGroup(true, job).Run(ctx)
-
+		_ = biz.pb.Publish(ctx, common.TopicUserDislikeRestaurant, pubsub.NewMessage(data))
 	}()
 
 	return nil
