@@ -119,5 +119,28 @@ func main() {
 		}
 	}
 
+	// Config exporter Jaeger
+	//je, err := jg.NewExporter(jg.Options{
+	//	AgentEndpoint: os.Getenv("JAEGER_AGENT_URL"),
+	//	Process:       jg.Process{ServiceName: "G06-Food-Delivery"},
+	//})
+	//
+	//if err != nil {
+	//	log.Println(err)
+	//}
+	//
+	//trace.RegisterExporter(je)
+	//trace.ApplyConfig(trace.Config{DefaultSampler: trace.ProbabilitySampler(1)})
+
 	r.Run(":8080")
+	//if err := http.ListenAndServe(
+	//	":8080",
+	//	&ochttp.Handler{ // moi khi request di vao la phai dang ky tracing
+	//		Handler: r,
+	//	},
+	//	//r,
+	//); err != nil {
+	//	log.Fatalln(err)
+	//}
+
 }

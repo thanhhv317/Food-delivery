@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/btcsuite/btcutil/base58"
+	"go.opencensus.io/trace"
 	"golang/common"
 	restaurantlikemodel "golang/module/restaurantlike/model"
 	"time"
@@ -17,6 +18,10 @@ func (s *sqlStore) GetUsersLikeRestaurant(ctx context.Context,
 	paging *common.Paging,
 	moreKeys ...string,
 ) ([]common.SimpleUser, error) {
+	c1, span := trace.StartSpan(ctx, "GetUsersLikeRestaurant.store")
+	span.AddAttributes(trace.Int64Attribute("restaurant_id", int64((filter.RestaurantId))))
+	defer span.End()
+
 	var result []restaurantlikemodel.Like
 
 	db := s.db
@@ -29,10 +34,13 @@ func (s *sqlStore) GetUsersLikeRestaurant(ctx context.Context,
 		}
 	}
 
+	_, span2 := trace.StartSpan(c1, "Count.UsersLikeRestaurant.Store")
 	if err := db.Count(&paging.Total).Error; err != nil {
+		defer span2.End()
 		return nil, common.ErrDB(err)
 	}
 
+	span2.End()
 	//for i := range moreKeys {
 	//	db = db.Preload(moreKeys[i])
 	//}
