@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang/component/appctx"
 	"golang/component/uploadprovider"
+	"golang/memcache"
 	"golang/midleware"
 	ginrestaurant "golang/module/restaurant/transport/gin"
 	"golang/module/restaurantlike/transport/ginrestaurantlike"
@@ -91,7 +92,8 @@ func main() {
 	r.Static("/static", "./static")
 
 	userStorage := userstorage.NewSQLStore(db)
-	midAuthorize := midleware.RequiredAuth(appCtx, userStorage)
+	userCaching := memcache.NewUserCaching(memcache.NewCaching(), userStorage)
+	midAuthorize := midleware.RequiredAuth(appCtx, userCaching)
 
 	v1 := r.Group("/v1")
 

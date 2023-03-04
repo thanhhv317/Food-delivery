@@ -6,6 +6,7 @@ import (
 	"github.com/btcsuite/btcutil/base58"
 	"golang/common"
 	restaurantlikemodel "golang/module/restaurantlike/model"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -19,7 +20,7 @@ func (s *sqlStore) GetUsersLikeRestaurant(ctx context.Context,
 ) ([]common.SimpleUser, error) {
 	var result []restaurantlikemodel.Like
 
-	db := s.db
+	db := s.db.Session(&gorm.Session{NewDB: true})
 
 	db = db.Table(restaurantlikemodel.Like{}.TableName()).Where(conditions)
 

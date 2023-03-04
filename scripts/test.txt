@@ -1,0 +1,1 @@
+ wrk -t4 -c100 -d10 http://localhost:8080/v1/restaurants -s test.lua
