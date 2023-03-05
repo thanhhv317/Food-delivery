@@ -13,6 +13,7 @@ func (engine *subscriberEngine) setup() {
 		true,
 		IncreaseLikeCountAfterUserLikeRestaurant(engine.appCtx),
 		PushNotificationAfterUserLikeRestaurant(engine.appCtx),
+		RealtimeEmitAfterUserLikeRestaurant(engine.appCtx),
 	)
 
 	engine.startSubTopic(

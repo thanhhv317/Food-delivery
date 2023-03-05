@@ -14,6 +14,7 @@ const (
 const (
 	TopicUserLikeRestaurant    pubsub.Topic = "TopicUserLikeRestaurant"
 	TopicUserDislikeRestaurant pubsub.Topic = "TopicUserDislikeRestaurant"
+	TopicUserUpdateLocation    pubsub.Topic = "UserUpdateLocation"
 )
 
 type Requester interface {
