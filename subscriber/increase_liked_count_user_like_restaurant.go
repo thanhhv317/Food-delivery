@@ -58,6 +58,21 @@ func IncreaseLikeCountAfterUserLikeRestaurant(appCtx appctx.AppContext) consumer
 		},
 	}
 }
+func RealtimeEmitAfterUserLikeRestaurant(appCtx appctx.AppContext) consumerJob {
+	return consumerJob{
+		Title: "Realtime emit after user likes restaurant",
+		Hld: func(ctx context.Context, msg *pubsub.Message) error {
+			likeData := msg.Data().(*restaurantlikemodel.Like)
+			return appCtx.GetRealtimeEngine().EmitToUser(
+				likeData.GetUserId(),
+				string(msg.Channel()),
+				map[string]interface{}{
+					"restaurant_id": likeData.RestaurantId,
+					"user_id":       likeData.UserId,
+				})
+		},
+	}
+}
 
 func PushNotificationAfterUserLikeRestaurant(appCtx appctx.AppContext) consumerJob {
 	return consumerJob{

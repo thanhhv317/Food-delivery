@@ -1,16 +1,9 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	socketio "github.com/googollee/go-socket.io"
-	"github.com/googollee/go-socket.io/engineio"
-	"github.com/googollee/go-socket.io/engineio/transport"
-	"github.com/googollee/go-socket.io/engineio/transport/websocket"
-	"golang.org/x/net/context"
 	"golang/component/appctx"
-	"golang/component/tokenprovider/jwt"
 	"golang/component/uploadprovider"
 	"golang/memcache"
 	"golang/midleware"
@@ -20,10 +13,12 @@ import (
 	userstorage "golang/module/user/storage"
 	"golang/module/user/transport/ginuser"
 	"golang/pubsub/localpb"
+	"golang/skio"
 	"golang/subscriber"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"os"
 	"time"
 )
@@ -80,6 +75,7 @@ func main() {
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
 	db = db.Debug() // show query
+	r := gin.Default()
 
 	if err != nil {
 		log.Fatal(err)
@@ -88,12 +84,14 @@ func main() {
 	s3Provider := uploadprovider.NewS3Provider("", "", "", "", "")
 	pb := localpb.NewPubSub()
 
+	rtEngine := skio.NewEngine()
+
 	secretKey := os.Getenv("SYSTEM_SECRET")
-	appCtx := appctx.NewAppContext(db, s3Provider, secretKey, pb)
+	appCtx := appctx.NewAppContext(db, s3Provider, secretKey, pb, rtEngine)
+	rtEngine.Run(appCtx, r)
 
 	_ = subscriber.NewEngine(appCtx).Start()
 
-	r := gin.Default()
 	r.Use(midleware.Recover(appCtx))
 
 	r.Static("/static", "./static")
@@ -129,104 +127,114 @@ func main() {
 		}
 	}
 
-	r.Run(":8080")
-}
+	//r.Run(":8080")
 
-func startSocketIOServer(engine *gin.Engine, appCtx appctx.AppContext) {
-	server := socketio.NewServer(&engineio.Options{
-		Transports: []transport.Transport{websocket.Default},
-	})
+	//startSocketIOServer(r, appCtx)
 
-	server.OnConnect("/", func(s socketio.Conn) error {
-		//s.SetContext("")
-		fmt.Println("Socket connected:", s.ID(), " IP:", s.RemoteAddr())
-
-		s.Join("Shipper")
-		//server.BroadcastToRoom("/", "Shipper", "test", "Hello 200lab")
-
-		return nil
-	})
-
-	server.OnEvent("/", "test", func(s socketio.Conn, msg string) {
-		log.Println("test:", msg)
-	})
-
-	//go func() {
-	//	for range time.NewTicker(time.Second).C {
-	//		server.BroadcastToRoom("/", "Shipper", "test", "Ahihi")
-	//	}
-	//}()
-
-	server.OnError("/", func(s socketio.Conn, e error) {
-		fmt.Println("meet error:", e)
-	})
-
-	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
-		fmt.Println("closed", reason)
-		// Remove socket from socket engine (from app context)
-	})
-
-	server.OnEvent("/", "authenticate", func(s socketio.Conn, token string) {
-
-		// Validate token
-		// If false: s.Close(), and return
-
-		// If true
-		// => UserId
-		// Fetch db find user by Id
-		// Here: s belongs to who? (user_id)
-		// We need a map[user_id][]socketio.Conn
-
-		db := appCtx.GetMaiDBConnection()
-		store := userstorage.NewSQLStore(db)
-		//
-		tokenProvider := jwt.NewTokenJWTProvider(appCtx.SecretKey())
-		//
-		payload, err := tokenProvider.Validate(token)
-
-		if err != nil {
-			s.Emit("authentication_failed", err.Error())
-			s.Close()
-			return
-		}
-		//
-		user, err := store.FindUser(context.Background(), map[string]interface{}{"id": payload.UserId})
-		//
-		if err != nil {
-			s.Emit("authentication_failed", err.Error())
-			s.Close()
-			return
-		}
-
-		if user.Status == 0 {
-			s.Emit("authentication_failed", errors.New("you has been banned/deleted"))
-			s.Close()
-			return
-		}
-
-		user.Mask(false)
-
-		s.Emit("your_profile", user)
-	})
-
-	server.OnEvent("/", "test", func(s socketio.Conn, msg string) {
-		log.Println("test:", msg)
-	})
-
-	type Person struct {
-		Name string `json:"name"`
-		Age  int    `json:"age"`
+	if err := http.ListenAndServe(
+		":8080",
+		r,
+		//r,
+	); err != nil {
+		log.Fatalln(err)
 	}
-
-	server.OnEvent("/", "notice", func(s socketio.Conn, p Person) {
-		fmt.Println("server receive notice:", p.Name, p.Age)
-
-		p.Age = 33
-		s.Emit("notice", p)
-	})
-
-	go server.Serve()
-
-	engine.GET("/socket.io/*any", gin.WrapH(server))
-	engine.POST("/socket.io/*any", gin.WrapH(server))
 }
+
+//func startSocketIOServer(engine *gin.Engine, appCtx appctx.AppContext) {
+//	server := socketio.NewServer(&engineio.Options{
+//		Transports: []transport.Transport{websocket.Default},
+//	})
+//
+//	server.OnConnect("/", func(s socketio.Conn) error {
+//		//s.SetContext("")
+//		fmt.Println("Socket connected:", s.ID(), " IP:", s.RemoteAddr())
+//
+//		s.Join("Shipper")
+//		//server.BroadcastToRoom("/", "Shipper", "test", "Hello 200lab")
+//
+//		return nil
+//	})
+//
+//	server.OnEvent("/", "test", func(s socketio.Conn, msg string) {
+//		log.Println("test:", msg)
+//	})
+//
+//	//go func() {
+//	//	for range time.NewTicker(time.Second).C {
+//	//		server.BroadcastToRoom("/", "Shipper", "test", "Ahihi")
+//	//	}
+//	//}()
+//
+//	server.OnError("/", func(s socketio.Conn, e error) {
+//		fmt.Println("meet error:", e)
+//	})
+//
+//	server.OnDisconnect("/", func(s socketio.Conn, reason string) {
+//		fmt.Println("closed", reason)
+//		// Remove socket from socket engine (from app context)
+//	})
+//
+//	server.OnEvent("/", "authenticate", func(s socketio.Conn, token string) {
+//
+//		// Validate token
+//		// If false: s.Close(), and return
+//
+//		// If true
+//		// => UserId
+//		// Fetch db find user by Id
+//		// Here: s belongs to who? (user_id)
+//		// We need a map[user_id][]socketio.Conn
+//
+//		db := appCtx.GetMaiDBConnection()
+//		store := userstorage.NewSQLStore(db)
+//		//
+//		tokenProvider := jwt.NewTokenJWTProvider(appCtx.SecretKey())
+//		//
+//		payload, err := tokenProvider.Validate(token)
+//
+//		if err != nil {
+//			s.Emit("authentication_failed", err.Error())
+//			s.Close()
+//			return
+//		}
+//		//
+//		user, err := store.FindUser(context.Background(), map[string]interface{}{"id": payload.UserId})
+//		//
+//		if err != nil {
+//			s.Emit("authentication_failed", err.Error())
+//			s.Close()
+//			return
+//		}
+//
+//		if user.Status == 0 {
+//			s.Emit("authentication_failed", errors.New("you has been banned/deleted"))
+//			s.Close()
+//			return
+//		}
+//
+//		user.Mask(false)
+//
+//		s.Emit("your_profile", user)
+//	})
+//
+//	server.OnEvent("/", "test", func(s socketio.Conn, msg string) {
+//		log.Println("test:", msg)
+//	})
+//
+//	type Person struct {
+//		Name string `json:"name"`
+//		Age  int    `json:"age"`
+//	}
+//
+//	server.OnEvent("/", "notice", func(s socketio.Conn, p Person) {
+//		fmt.Println("server receive notice:", p.Name, p.Age)
+//
+//		p.Age = 33
+//		s.Emit("notice", p)
+//	})
+//
+//	go server.Serve()
+//
+//	engine.GET("/socket.io/*any", gin.WrapH(server))
+//	engine.POST("/socket.io/*any", gin.WrapH(server))
+//}
