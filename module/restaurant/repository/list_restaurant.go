@@ -39,16 +39,16 @@ func (biz *listRestaurantRepo) ListRestaurant(ctx context.Context,
 		return nil, err
 	}
 
-	//resIDs := make([]int, len(result))
-	//for i := range resIDs {
-	//	resIDs[i] = result[i].ID
-	//}
-	//
-	//if mapResLiked, err := biz.likedStore.GetRestaurantLikes(ctx, resIDs); err == nil {
-	//	for i := range result {
-	//		result[i].LikedCount = mapResLiked[result[i].ID]
-	//	}
-	//}
+	resIDs := make([]int, len(result))
+	for i := range resIDs {
+		resIDs[i] = result[i].ID
+	}
+
+	if mapResLiked, err := biz.likedStore.GetRestaurantLikes(ctx, resIDs); err == nil {
+		for i := range result {
+			result[i].LikedCount = mapResLiked[result[i].ID]
+		}
+	}
 
 	return result, nil
 }

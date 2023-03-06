@@ -3,21 +3,27 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/net/context"
 	"golang/component/appctx"
 	"golang/component/uploadprovider"
 	"golang/memcache"
 	"golang/midleware"
 	ginrestaurant "golang/module/restaurant/transport/gin"
+	restaurantlikestorage "golang/module/restaurantlike/storage"
 	"golang/module/restaurantlike/transport/ginrestaurantlike"
 	ginupload "golang/module/upload/transport/gin"
 	userstorage "golang/module/user/storage"
 	"golang/module/user/transport/ginuser"
+	"golang/proto"
 	"golang/pubsub/localpb"
 	"golang/skio"
 	"golang/subscriber"
+	"google.golang.org/grpc"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -84,6 +90,13 @@ func main() {
 	s3Provider := uploadprovider.NewS3Provider("", "", "", "", "")
 	pb := localpb.NewPubSub()
 
+	opts := grpc.WithInsecure()
+	cc, err := grpc.Dial("localhost:50051", opts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cc.Close()
+
 	rtEngine := skio.NewEngine()
 
 	secretKey := os.Getenv("SYSTEM_SECRET")
@@ -115,7 +128,7 @@ func main() {
 		{
 			// CRUD
 			restaurant.POST("", ginrestaurant.CreateRestaurant(appCtx))
-			restaurant.GET("", ginrestaurant.ListRestaurants(appCtx))
+			restaurant.GET("", ginrestaurant.ListRestaurants(appCtx, cc))
 			restaurant.GET("/:id", ginrestaurant.GetRestaurant(appCtx))
 			restaurant.PUT("/:id", ginrestaurant.UpdateRestaurant(appCtx))
 			restaurant.DELETE("/:id", ginrestaurant.DeleteRestaurant(appCtx))
@@ -130,6 +143,49 @@ func main() {
 	//r.Run(":8080")
 
 	//startSocketIOServer(r, appCtx)
+
+	// Create gRPC server
+	address := "0.0.0.0:50051"
+	lis, err := net.Listen("tcp", address)
+
+	if err != nil {
+		log.Fatalf("Error %v", err)
+	}
+
+	s := grpc.NewServer()
+	proto.RegisterRestaurantLikeServiceServer(s, restaurantlikestorage.NewGRPCServer(db))
+
+	go func() {
+		fmt.Printf("Server gRPC is listening on %v ...", address)
+		if err := s.Serve(lis); err != nil {
+			log.Fatalln(err)
+		}
+	}()
+
+	conn, err := grpc.DialContext(
+		context.Background(),
+		"0.0.0.0:50051",
+		grpc.WithBlock(),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalln("Failed to dial server:", err)
+	}
+
+	gwmux := runtime.NewServeMux()
+
+	err = proto.RegisterRestaurantLikeServiceHandler(context.Background(), gwmux, conn)
+	if err != nil {
+		log.Fatalln("Failed to register gateway:", err)
+	}
+
+	gwServer := &http.Server{
+		Addr:    ":8090",
+		Handler: gwmux,
+	}
+
+	log.Println("Serving gRPC-Gateway on http://0.0.0.0:8090")
+	go gwServer.ListenAndServe()
 
 	if err := http.ListenAndServe(
 		":8080",

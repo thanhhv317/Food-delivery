@@ -9,7 +9,9 @@ import (
 	restaurantmodel "golang/module/restaurant/model"
 	reporestaurant "golang/module/restaurant/repository"
 	restaurantstorage "golang/module/restaurant/storage"
-	restaurantlikestorage "golang/module/restaurantlike/storage"
+	grpcclientrestaurant "golang/module/restaurant/storage/grpcclient"
+	"golang/proto"
+	"google.golang.org/grpc"
 	"net/http"
 )
 
@@ -24,7 +26,7 @@ func (fakeListStore) ListDataWithCondition(
 	return []restaurantmodel.Restaurant{}, nil
 }
 
-func ListRestaurants(appContext appctx.AppContext) func(ctx *gin.Context) {
+func ListRestaurants(appContext appctx.AppContext, grpcClientConn *grpc.ClientConn) func(ctx *gin.Context) {
 	return func(c *gin.Context) {
 		var result []restaurantmodel.Restaurant
 
@@ -41,7 +43,8 @@ func ListRestaurants(appContext appctx.AppContext) func(ctx *gin.Context) {
 		}
 
 		store := restaurantstorage.NewSQLStore(appContext.GetMaiDBConnection())
-		likedStore := restaurantlikestorage.NewSQLStore(appContext.GetMaiDBConnection())
+		likedStore := grpcclientrestaurant.NewGRPCClient(proto.NewRestaurantLikeServiceClient(grpcClientConn))
+		//likedStore := restaurantlikestorage.NewSQLStore(appContext.GetMaiDBConnection())
 		repo := reporestaurant.NewListRestaurantRepo(store, likedStore)
 		biz := bizrestaurant.NewListRestaurantBiz(repo)
 		result, err := biz.ListDataWithCondition(c.Request.Context(), &filter, &paging)
